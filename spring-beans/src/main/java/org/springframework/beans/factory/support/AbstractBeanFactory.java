@@ -257,15 +257,14 @@ public abstract class AbstractBeanFactory extends org.springframework.beans.fact
 	 * 3、别名
 	 */
 	@SuppressWarnings("unchecked")
-	protected <T> T doGetBean(
-			final String name, final Class<T> requiredType, final Object[] args, boolean typeCheckOnly)
+	protected <T> T doGetBean(final String name, final Class<T> requiredType, final Object[] args, boolean typeCheckOnly)
 			throws BeansException {
 
 		//拿到bean的原始名称
 		final String beanName = transformedBeanName(name);
 		Object bean;
 
-		// 拿到给定的bean 如果入参是实例化是空的
+		// 拿到给定的bean 如果入参是实例化是空的 尝试从二级缓存中获取
 		Object sharedInstance = getSingleton(beanName);
 		if (sharedInstance != null && args == null) {
 			if (logger.isDebugEnabled()) {
@@ -288,7 +287,7 @@ public abstract class AbstractBeanFactory extends org.springframework.beans.fact
 			}
 
 			// Check if bean definition exists in this factory.
-			//从父容器中获取
+			//从父容器中获取 beanDefinition  如果当前工厂不包含这个beanDefinition那么则使用父工厂的获得bean的方法
 			BeanFactory parentBeanFactory = getParentBeanFactory();
 			if (parentBeanFactory != null && !containsBeanDefinition(beanName)) {
 				// Not found -> check parent.
@@ -307,11 +306,13 @@ public abstract class AbstractBeanFactory extends org.springframework.beans.fact
 				markBeanAsCreated(beanName);
 			}
 
+			//否则从当前Bean工厂获取beanDefinition
 			try {
 				final org.springframework.beans.factory.support.RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
 				checkMergedBeanDefinition(mbd, beanName, args);
 
 				// Guarantee initialization of beans that the current bean depends on.
+				//保证当前Bean依赖的bean已经实例化了
 				String[] dependsOn = mbd.getDependsOn();
 				if (dependsOn != null) {
 					for (String dependsOnBean : dependsOn) {
@@ -1528,7 +1529,7 @@ public abstract class AbstractBeanFactory extends org.springframework.beans.fact
 	 * @param mbd the merged bean definition
 	 * @return the object to expose for the bean
 	 * 返回bean的对象
-	 *或者bean工行创建的对象
+	 * 或者bean工厂创建的对象 主要逻辑就是如果是工厂Bean则从工厂中拿到对象
 	 */
 	protected Object getObjectForBeanInstance(
 			Object beanInstance, String name, String beanName, org.springframework.beans.factory.support.RootBeanDefinition mbd) {
